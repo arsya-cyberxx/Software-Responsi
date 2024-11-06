@@ -1,4 +1,4 @@
-user_ID,user_password,user_age,user_lastLogin,user_history,user _voucher,user_voucherChange,login_status,user_voucherEligible,,,product_ID,product_age,product_stock,product_restockFrequency,rating_total,rating_frequency,,temperature,status,expiry_time,suhu_output,almost_expired,expired
+user_ID,user_password,user_age,user_lastLogin,user_history,user _voucher,login_status,user_voucherEligible,user_voucherChange,,,product_ID,product_age,product_stock,product_restockFrequency,rating_total,rating_frequency,,temperature,status,expiry_time,suhu_output,almost_expired,expired
 111,pass123,52,,10,,0,yes,1,,,A,1,1,40,120,40,,32,bad,,,,
 222,pass456,18,,1,,0,no,1,,,B,0,2,40,80,40,,32,bad,,,,
 333,pass789,12,,2,,0,no,1,,,C,0,10,20,70,40,,32,bad,,,,
