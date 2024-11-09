@@ -18,16 +18,14 @@ def update_stock_from_cart(file_path):
                         if product in product_stock:
                             product_stock[product] = max(product_stock[product] - quantity, 0)
                 
-                # Update kolom 'product stock' dengan hasil baru
                 row['product stock'] = str(product_stock)
             rows.append(row)
         
-        # Reset pointer file dan tulis ulang data yang telah diubah
         file.seek(0)
         writer = csv.DictWriter(file, fieldnames=reader.fieldnames)
         writer.writeheader()
         writer.writerows(rows)
-        file.truncate()  # Potong sisa file agar tidak ada data lama
+        file.truncate()
     
     print("Stok produk berhasil diperbarui berdasarkan cart.")
 
