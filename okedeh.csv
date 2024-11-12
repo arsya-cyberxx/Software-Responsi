@@ -1,5 +1,5 @@
-user_ID,user_password,user_age,user_lastLogin,user_history,user _voucher,login_status,user_voucherEligible,,,product_ID,product_age,product_restockFrequency,rating_total,rating_frequency,,product_stock,temperature,status,expiry_time,suhu_output,almost_expired,expired,,timestamp,order_id,user ID,cart,rating_input
-111,ab12,52,,10,,0,yes,,,A,1,40,120,40,,1,32,bad,,,,,,,1,111,"A,1 , B,2 , C,3",
-222,cd34,18,,1,,0,no,,,B,0,40,80,40,,2,32,bad,,,,,,,2,333,"A,1 , B,2",
-333,ef56,12,,2,,0,no,,,C,0,20,70,40,,10,32,bad,,,,,,,3,444,"A,1 , B,4 ,  C,2 , D,3",
+user_ID,user_password,user_age,user_lastLogin,user_history,user _voucher,login_status,user_voucherEligible,user_voucherChange,,,product_ID,product_age,product_restockFrequency,rating_total,rating_frequency,,product_stock,temperature,status,expiry_time,suhu_output,almost_expired,expired,,timestamp,order_id,user ID,cart,rating_input
+111,ab12,52,,10,,0,yes,1,,,A,1,40,120,40,,1,32,bad,,,,,,,1,111,"A,1 , B,2 , C,3",
+222,cd34,18,,1,,0,no,,1,,B,0,40,80,40,,2,32,bad,,,,,,,2,333,"A,1 , B,2",
+333,ef56,12,,2,,0,no,,1,,C,0,20,70,40,,10,32,bad,,,,,,,3,444,"A,1 , B,4 ,  C,2 , D,3",
 444,gh78,17,,,,,,,,D,0,10,200,40,,,,,,,,,,,,,,
