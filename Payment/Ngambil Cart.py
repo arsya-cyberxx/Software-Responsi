@@ -41,7 +41,6 @@ if __name__ == "__main__":
     file_path = 'okedeh.csv'
     com_port = 'COM3'
     baud_rate = 9600
-
     
     try:
         print(send_stock(file_path)) 

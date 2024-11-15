@@ -7,8 +7,8 @@ def comserial(port, baudrate):
                     baudrate=19200)
     return com
 
-def update_csv(com, file_path):
-    com_bytes = com.readline()
+async def update_csv(com, file_path):
+    com_bytes = await com.readline()
     data = com_bytes.decode("unicode").strip()
 
     if data=='Pembayaran berhasil':

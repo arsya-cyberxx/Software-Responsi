@@ -44,6 +44,7 @@ async def on_backend() :
 event_emitter = EventEmitter()
 event_emitter.on("completed", security)
 event_emitter.on("backend", on_backend)
+
 # Continuously wait for "completed" input in main
 async def main():
     user_input = "start"
