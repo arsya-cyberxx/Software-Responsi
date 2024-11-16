@@ -30,7 +30,7 @@ async def update_csv(com, file_path):
                     quantity_to_deduct = int(cart_items[index + 1])
                     
                     current_quantity = int(row['product_stock']) if row['product_stock'] else 0
-                    updated_quantity = max(current_quantity - quantity_to_deduct, 0)
+                    updated_quantity = current_quantity - quantity_to_deduct
                     row['product_stock'] = int(updated_quantity)
                 
                 rows.append(row)

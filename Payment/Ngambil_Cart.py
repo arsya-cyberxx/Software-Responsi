@@ -1,16 +1,17 @@
 import csv
-import serial
+#import serial
 import pandas as pd
 import time
+import update_csv
 
-def comserial(com_port, baud_rate=9600):
-    ser = serial.Serial(port=com_port,
-                        baudrate=baud_rate,  
-                        parity=serial.PARITY_ODD,
-                        stopbits=serial.STOPBITS_ONE,
-                        bytesize=serial.EIGHTBITS,
-                        timeout=3)
-    return ser
+# def comserial(com_port, baud_rate=9600):
+#     ser = serial.Serial(port=com_port,
+#                         baudrate=baud_rate,  
+#                         parity=serial.PARITY_ODD,
+#                         stopbits=serial.STOPBITS_ONE,
+#                         bytesize=serial.EIGHTBITS,
+#                         timeout=3)
+#     return ser
 
 def send_stock(file_path):
     df = pd.read_csv(file_path)
@@ -35,6 +36,7 @@ def send_stock(file_path):
     for i in totalharga:
         biner = format(int(i), '004b')
         binerharga.append(biner)
+    binerharga=''.join(binerharga)
     return binerharga
 
 if __name__ == "__main__":
