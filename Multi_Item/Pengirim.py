@@ -22,7 +22,7 @@ def mengirim(file_path):
             if row["product_ID"] and row["product_stock"]:
                 product_IDs.append(int(row["product_ID"]))
                 product_stocks.append(int(row["product_stock"]))
-            if row.get("login_status") == "open" and row.get("user_age"):
+            if row.get("login_status") == "open":
                 user_ages = int(row["user_age"])
 
     # Gabungkan data menjadi JSON

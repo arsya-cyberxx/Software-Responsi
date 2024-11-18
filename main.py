@@ -1,6 +1,6 @@
 import asyncio
-import file1
-import file2
+from Loyalty import Loyalti
+from Multi_Item import Penerima
 import file3
 import pandas as pd
 df = pd.read_csv("okedeh.csv")

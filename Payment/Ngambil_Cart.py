@@ -1,19 +1,18 @@
 import csv
-#import serial
+import serial
 import pandas as pd
 import time
-import update_csv
 
-# def comserial(com_port, baud_rate=9600):
-#     ser = serial.Serial(port=com_port,
-#                         baudrate=baud_rate,  
-#                         parity=serial.PARITY_ODD,
-#                         stopbits=serial.STOPBITS_ONE,
-#                         bytesize=serial.EIGHTBITS,
-#                         timeout=3)
-#     return ser
+def comserial(com_port, baud_rate=9600):
+    ser = serial.Serial(port=com_port,
+                        baudrate=baud_rate,  
+                        parity=serial.PARITY_ODD,
+                        stopbits=serial.STOPBITS_ONE,
+                        bytesize=serial.EIGHTBITS,
+                        timeout=3)
+    return ser
 
-def send_stock(file_path):
+def send_stock(file_path, ser):
     df = pd.read_csv(file_path)
     last_value_cart = df['cart'][df['cart'].notna()].iloc[-1] 
     last_value_cart=last_value_cart.split(",")
@@ -27,7 +26,6 @@ def send_stock(file_path):
             totalharga+=3*int(last_value_cart[i+1])
         elif last_value_cart[i]=='D':
             totalharga+=4*int(last_value_cart[i+1])
-    #ser.write(last_value_cart.encode())
     totalharga=str(totalharga)
     if len(totalharga)!=3:
         totalharga='0'*(3-len(totalharga))+totalharga
@@ -37,6 +35,7 @@ def send_stock(file_path):
         biner = format(int(i), '004b')
         binerharga.append(biner)
     binerharga=''.join(binerharga)
+    ser.write(binerharga.encode())
     return binerharga
 
 if __name__ == "__main__":
@@ -45,6 +44,7 @@ if __name__ == "__main__":
     baud_rate = 9600
     
     try:
-        print(send_stock(file_path)) 
+        ser=comserial(com_port, baud_rate)
+        print(send_stock(file_path, ser)) 
     except KeyboardInterrupt:
         print("Process interrupted. Closing COM port.")
