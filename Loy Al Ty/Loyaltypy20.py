@@ -49,6 +49,7 @@ async def get_data():
 async def update_data():
     try:
         data = await request.get_json()
+        status = data.get('status', 0)
         new_voucherChange = data.get('user_voucherChange', 0)
         user_voucherEligible = data.get('user_voucherEligible', 0)
 
