@@ -2,157 +2,125 @@ import asyncio
 from bleak import BleakClient
 import json
 import pandas as pd
+import csv
 import websockets
-#BLE address and characteristic
+
+# BLE address and characteristic
 esp32_characteristic_uuid = "84c4e7af-b494-461b-8c55-125f88183792"
 address = "cc:7b:5c:26:cc:0a"
 # WebSocket server details (ESP32 IP address and port)
 websocket_url = "ws://192.168.18.5:5000"
 
-def pulldatauser(coor, data): 
-    user_properties = []
-    userID = data.iloc[coor - 1, 26]  
-    user_properties.append(userID)
-    result = [(i, j) for i in range(len(df)) for j in range(len(df.columns)) if df.iloc[i, j] == userID]
-    row, col = result[0]
-    user_eligable = data.iloc[row, 7]  
-    user_properties.append(user_eligable)
-    return user_properties
-
+# Utility functions
 def pullcart(df, cartloc): 
     cart = df.iloc[cartloc - 1, 27]  
     elements = [x.strip() for x in cart.split(",")]
     result = [[elements[i], int(elements[i + 1])] for i in range(0, len(elements), 2)]
     return result
 
-def pullrating(coor, data):
+def pullitem(cart, df): 
+    letters = [item[0] for item in cart]
+    coor = []
+    for letter in letters:
+        result = [(i, j) for i in range(len(df)) for j in range(len(df.columns)) if df.iloc[i, j] == letter]
+        if result:
+            row, col = result[0]
+            coor.append(row)
+    return coor, letters
+
+def pullrating(coor, df):
     itemsprop = []
     for i in coor:
-        item_properties = []
-        for x in range(3):  
-            properties = data.iloc[i, x + 12]  
-            item_properties.append(properties)
+        item_properties = [df.iloc[i, x + 12] for x in range(3)]  
         itemsprop.append(item_properties)  
     return itemsprop
 
-def pullitem(cart): 
-    letters = []
-    for item in cart:
-        letters.append(item[0])          
-    coor = []
-    for x in range(len(letters)):
-        result = [(i, j) for i in range(len(df)) for j in range(len(df.columns)) if df.iloc[i, j] == letters[x]]
-        row, col = result[0]
-        coor.append(row)  
-    return coor, letters 
+def update_rating(coor, data, new_rating, df):
+    for i in range(len(coor)):
+        for x in range(2):  
+            data.iloc[coor[i], x + 13] = new_rating[i][x + 1]
+    df.to_csv('okedeh.csv', index=False)
+    print("Database has been updated.")
 
+def update_user_voucher(user_ID, user_voucher, df):
+    file_path = 'okedeh.csv'
+    data = []
+    with open(file_path, 'r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['user_ID'] == user_ID:
+                row['user_voucher'] = user_voucher
+            data.append(row)
+    with open(file_path, 'w', newline='') as csvfile:
+        fieldnames = data[0].keys()
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
+    print("User voucher updated.")
+
+# Prepare the cart and user data
 df = pd.read_csv('okedeh.csv')
-
-#masukin koordinat buat cart
-cartloc = int(input("nomor cart mu adalah: "))
-#pull cart dalam csv
+cartloc = int(input("Nomor cart kamu adalah: "))
 cart = pullcart(df, cartloc)
-#filter data buat cart
-coor , letter = pullitem(cart)
-#pull data user 
-user = pulldatauser(cartloc, df)
-#pull data items 
+coor, letters = pullitem(cart, df)
 item_properties = pullrating(coor, df)
 
-# Data from your lists
-products = cart
-metrics = item_properties
-user_data = user
+user_ID = df.iloc[cartloc - 1, 26]
+user_voucher_eligible = df.iloc[cartloc - 1, 7] == 'yes'
 
-# User info
-user_ID = str(int(user_data[0]))  
-voucher_eligible = True if user_data[1] == 'yes' else False 
+cart_data = {}
+for i, product in enumerate(cart):
+    rating_total = int(item_properties[i][0])
+    rating_frequency = int(item_properties[i][1])
+    restock_frequency = int(item_properties[i][2])
+    cart_data[product[0]] = {
+        "rating_total": rating_total,
+        "rating_frequency": rating_frequency,
+        "restock_frequency": restock_frequency
+    }
 
-product_identifiers = letter  
-
-code_to_product_name = {
-    'A': 'Product A',
-    'B': 'Product B',
-    'C': 'Product C',
-    'D': 'Product D'
+data_to_send_ble = {
+    "user_ID": str(int(user_ID)),
+    "user_voucherEligible": user_voucher_eligible,
+    "cart": cart_data
 }
 
-desired_products = [code_to_product_name[code] for code in product_identifiers]
+update_rating(coor, df, [[product[0], item_properties[i][0], item_properties[i][1]] for i, product in enumerate(cart)], df)
+update_user_voucher(str(int(user_ID)), user_voucher_eligible, df)
 
-cart = {}
-product_names = [code_to_product_name[item[0]] for item in products]  
-for i, product in enumerate(products):
-    product_name = product_names[i]
-    if product_name in desired_products:  
-        quantity = int(product[1])  
-        rating_total = int(metrics[i][0])  
-        rating_frequency = int(metrics[i][1])  
-        restock_frequency = int(metrics[i][2])  
+# Send data via BLE
+async def send_via_ble(address, data):
+    try:
+        async with BleakClient(address, timeout=20.0) as client:
+            if client.is_connected:
+                await asyncio.sleep(2)  # Allow connection to stabilize
+                await client.write_gatt_char(esp32_characteristic_uuid, json.dumps(data).encode('utf-8'))
+                print("Data sent via BLE:", json.dumps(data, indent=4))
 
-        
-        price = 29.99 - i * 10 
+                # Receive response
+                received_data = await client.read_gatt_char(esp32_characteristic_uuid)
+                response = json.loads(received_data.decode('utf-8'))
+                print("Response from ESP32:", response)
+            else:
+                print("Failed to connect to BLE device.")
+    except Exception as e:
+        print(f"BLE error: {e}")
 
-        
-        cart[product_name] = {
-            "price": float(price),  
-            "quantity": quantity,
-            "rating_total": rating_total,
-            "rating_frequency": rating_frequency,
-            "restock_frequency" : restock_frequency
-        }
-
-data_to_send = {
-    "user_ID": user_ID,
-    "user_voucherEligible": voucher_eligible,
-    "cart": cart
-}
-
-json_data = json.dumps(data_to_send).encode('utf-8')
-
-# Define websocket function
-async def send_via_websocket(data):
-    """Send data to ESP32 via WebSocket."""
+# Send `login_status=0` via WebSocket
+async def send_via_websocket():
     try:
         async with websockets.connect(websocket_url) as websocket:
             print("Connected to WebSocket server.")
-            
-            # Send the data
-            await websocket.send(json.dumps(data))
-            print(f"Sent via WebSocket: {json.dumps(data, indent=4)}")
-
-            # Optionally, receive and print acknowledgment from the ESP32
-            response = await websocket.recv()
-            print(f"Response from WebSocket server: {response}")
+            login_status_data = {"login_status": 0}
+            await websocket.send(json.dumps(login_status_data))
+            print("Login status sent via WebSocket:", login_status_data)
     except Exception as e:
         print(f"WebSocket error: {e}")
 
-# Define main function
-async def main(address):
-    try:
-        async with BleakClient(address, timeout=20.0) as client:
-            await asyncio.sleep(2)  # Small delay before writing to stabilize the connection
-            
-            if client.is_connected:
-                # Step 1: Send JSON data to the ESP32
-                await client.write_gatt_char(esp32_characteristic_uuid, json_data)
-                print("Data sent successfully.")
-
-                # Step 2: Wait for ESP32 to process and respond
-                await asyncio.sleep(2)  # Adjust delay as necessary
-
-                # Step 3: Read JSON response data from the ESP32
-                received_data = await client.read_gatt_char(esp32_characteristic_uuid)
-                decoded_data = received_data.decode('utf-8')
-                received_json = json.loads(decoded_data)
-                # Step 4: Push Data to CSV
-                
-                # Step 5: Send login_status_off = 0 to ESP32 via WebSocket
-                login_status_data = {"login_status_off": 0}
-                await send_via_websocket(login_status_data)
-            else:
-                print("Failed to connect.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# Main function
+async def main():
+    await send_via_ble(address, data_to_send_ble)
+    await send_via_websocket()
 
 if __name__ == "__main__":
-    asyncio.run(main(address))
+    asyncio.run(main())
