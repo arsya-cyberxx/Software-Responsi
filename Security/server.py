@@ -1,11 +1,11 @@
-import asyncio
+import asyncio 
 import websockets
 import pandas as pd
 import json
 from datetime import datetime
 
 # Baca data pengguna dari CSV
-data = pd.read_csv('DataUser.csv')
+data = pd.read_csv('okedeh.csv')
 login_attempts = {}         # Melacak percobaan login untuk setiap user ID
 password_reset_stage = {}    # Menyimpan status reset password untuk setiap user ID
 
@@ -13,7 +13,7 @@ print("Server is starting...")
 
 # Fungsi untuk menyimpan data kembali ke CSV setelah perubahan
 def save_data():
-    data.to_csv('DataUser.csv', index=False)
+    data.to_csv('okedeh.csv', index=False)
     print("Data saved to CSV.")
 
 # Fungsi untuk menangani setiap koneksi WebSocket
@@ -32,7 +32,7 @@ async def handle_connection(websocket, path):
                 user_ID = content["user_IDinput"].strip()
 
                 # Periksa apakah ID ada di data
-                if user_ID in data['ID'].astype(str).str.strip().values:
+                if user_ID in data['user_ID'].astype(str).str.strip().values:
                     user_id_valid = True
                     response = {"login_status": "id_valid"}
                     print("ID is valid. Waiting for password.")
@@ -45,7 +45,7 @@ async def handle_connection(websocket, path):
             # Jika ID valid dan pesan berisi password
             elif user_id_valid and "user_password" in content:
                 user_password = content["user_password"].strip()
-                correct_password = data[data['ID'].astype(str).str.strip() == user_ID]['Password'].values[0].strip()
+                correct_password = data[data['user_ID'].astype(str).str.strip() == user_ID]['user_password'].values[0].strip()
 
                 # Inisialisasi percobaan login dan status reset password jika belum ada
                 if user_ID not in login_attempts:
@@ -56,8 +56,8 @@ async def handle_connection(websocket, path):
                 # Cek apakah user dalam tahap reset password
                 if password_reset_stage[user_ID]:
                     # Perbarui password dan simpan
-                    data.loc[data['ID'].astype(str).str.strip() == user_ID, 'Password'] = user_password
-                    data.loc[data['ID'].astype(str).str.strip() == user_ID, 'lastLogin'] = datetime.now().isoformat()
+                    data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'user_password'] = user_password
+                    data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'user_lastLogin'] = datetime.now().isoformat()
                     save_data()
                     response = {"login_status": "success", "message": "Password updated successfully"}
                     await websocket.send(json.dumps(response))
@@ -70,9 +70,11 @@ async def handle_connection(websocket, path):
 
                 # Verifikasi password
                 if user_password == correct_password:
-                    # Login berhasil
-                    data.loc[data['ID'].astype(str).str.strip() == user_ID, 'lastLogin'] = datetime.now().isoformat()
-                    save_data()
+                    # Login berhasil: Update login_status dan user_lastLogin
+                    data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'login_status'] = 1
+                    data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'user_lastLogin'] = datetime.now().isoformat()
+                    save_data()  # Simpan perubahan ke CSV
+
                     response = {"login_status": "success", "message": "Login successful"}
                     await websocket.send(json.dumps(response))
                     print(f"User {user_ID} logged in successfully.")
