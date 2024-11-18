@@ -1,7 +1,6 @@
 import asyncio
-from Loyalty import Loyalti
-from Multi_Item import Penerima
-import file3
+from Loyalty.Loyalti import Loyalti
+from Multi_Item import Pengirim
 import pandas as pd
 df = pd.read_csv("okedeh.csv")
 
@@ -22,37 +21,28 @@ class EventEmitter:
                 return await listener(*args)
 
 # Listener for the "completed" event
-async def security():
-    print ( "login attempted has started")
-    task1 = asyncio.create_task(file1.run())
-    lenght, user_id= await task1
-    df.loc [  lenght - 1  , 'user ID'] = user_id
-    df.to_csv('okedeh.csv', index=False) 
-    print("Login Completed")
-    return "backend"
+async def multiitem(file_path):
+    Pengirim.mengirim(file_path)
+    return "loyalti"
 
-async def on_backend() :
-    print ( "cart picking has started")
-    task2 = asyncio.create_task(file2.run())
-    newrow, cart = await task2
-    await asyncio.sleep(1)
-    df.loc [newrow - 1 , 'cart'] = cart
-    df.to_csv('okedeh.csv', index=False) 
-
+async def loyalti():
+    loyalti_app = Loyalti()
+    loyalti_app.app.run(host='0.0.0.0', port=5000, debug=True)
+    return "payment"
 
 # Instantiate EventEmitter and register the listener
 event_emitter = EventEmitter()
-event_emitter.on("completed", security)
-event_emitter.on("backend", on_backend)
+event_emitter.on("multiitem", multiitem)
+event_emitter.on("loyalti", loyalti)
 
 # Continuously wait for "completed" input in main
 async def main():
     user_input = "start"
     while True:
         if user_input == "start":
-            user_input = await event_emitter.emit("completed")
-        elif user_input == "backend":
-            await event_emitter.emit("backend")
+            user_input = multiitem('okedeh.csv')
+        elif user_input == "loyalti":
+            user_input= await event_emitter.emit("loyalti")
             break
         else:
             print("Waiting for the correct input ('completed')...")

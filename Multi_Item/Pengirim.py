@@ -2,13 +2,12 @@ import csv
 import time
 import paho.mqtt.client as mqtt
 import json
-
-# Konfigurasi MQTT
-broker_address = "192.168.4.170"
-topic = "esp32/csv"
+import Penerima
 
 def mengirim(file_path):
     # Inisialisasi client MQTT
+    broker_address = "192.168.4.170"
+    topic = "esp32/csv"
     client = mqtt.Client()
     client.connect(broker_address, 1890, 60)
 
@@ -34,6 +33,4 @@ def mengirim(file_path):
     print(f"Data terkirim: {message}")
 
     client.disconnect()
-
-# Panggil fungsi dengan path ke file CSV
-mengirim("D:\Data Rapi\Waktu Nadhir di UGM\Semester 5\9. PJK\Responsi\Contoh CSV Lengkap.csv")
+    Penerima.menerima(file_path)

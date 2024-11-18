@@ -36,5 +36,3 @@ def menerima(file_path):
     mqttc.subscribe("esp32/terima")
 
     mqttc.loop_forever()
-
-menerima("D:\Data Rapi\Waktu Nadhir di UGM\Semester 5\9. PJK\Responsi\Contoh CSV.csv")
