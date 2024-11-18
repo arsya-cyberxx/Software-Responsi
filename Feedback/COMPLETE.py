@@ -4,12 +4,13 @@ import json
 import pandas as pd
 import csv
 import websockets
-
+from datetime import datetime
 # BLE address and characteristic
 esp32_characteristic_uuid = "84c4e7af-b494-461b-8c55-125f88183792"
 address = "cc:7b:5c:26:cc:0a"
 websocket_url = "ws://192.168.18.5:5000"
 csv_file = "okedeh.csv"
+current_time = str(datetime.now().time())
 
 # Utility functions
 def pullcart(df, cartloc): 
