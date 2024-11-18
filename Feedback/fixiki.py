@@ -62,8 +62,9 @@ async def main(address):
                 
                 print("Data received successfully via BLE:")
                 print(json.dumps(received_json, indent=4))  # Print JSON data in a readable format
+                # Step 4: Proses the data so that could be incorporated in CSV
 
-                # Step 4: Send login_status_off = 0 to ESP32 via WebSocket
+                # Step 5: Send login_status_off = 0 to ESP32 via WebSocket
                 login_status_data = {"login_status_off": 0}
                 await send_via_websocket(login_status_data)
 
