@@ -1,47 +1,38 @@
 import json
 import pandas as pd 
-# Sample JSON data
+import csv 
 json_data = '''
-
 {
     "user_ID": "333",
-    "user_voucherEligible": false,
-    "cart": {
+    "user_voucher" : 11,
+    "cart": 
+    {
         "Product A": {
-            "price": 29.99,
-            "quantity": 1,
-            "rating_total": 40,
-            "rating_frequency": 12000000,
-            "restock_frequency": 40
+            "rating_total": 44,
+            "rating_frequency": 120
         },
         "Product B": {
-            "price": 19.99,
-            "quantity": 2,
-            "rating_total": 40,
-            "rating_frequency": 80,
-            "restock_frequency": 40
+            "rating_total": 50,
+            "rating_frequency": 80  
         }
     }
 }
-
 '''
-
-def update_rating(coor, data, new_rating):
+def update_rating(coor, data, new_rating ,df ):
     itemsprop = []
     for i in coor:
-        for x in range(3):  
-            data.iloc[i, x + 12] = new_rating[i][x+3]
+        for x in range(2):  
+            data.iloc[i, x + 13] = new_rating[i][x+1]
     df.to_csv('okedeh.csv', index=False)
     print (" database has been updated ")
     return itemsprop
 
-def pullproduct ( cart) :
+def pullproduct ( cart , df ) :
     
     product = []
     for i in range  ( len ( cart )) : 
         letters = cart [i][0]
         product.append ( letters)
-    
     product_id = [item.replace('Product ', '') for item in product]
     
     coor = [ ]
@@ -49,25 +40,48 @@ def pullproduct ( cart) :
         result = [(i, j) for i in range(len(df)) for j in range(len(df.columns)) if df.iloc[i, j] == product_id[x]]
         row, col = result[0]
         coor.append(row)  
-        
+
     return (coor)
 
+#async def uploadcsv (json_data) : 
 df = pd.read_csv('okedeh.csv')
-
 
 data = json.loads(json_data)
 
 
-user_info = [data["user_ID"], data["user_voucherEligible"]]
+user_info = [data["user_ID"], data["user_voucher"]]
 
 cart_items = []
 for product, details in data["cart"].items():
     # Convert each product's details into a list
-    item = [product, details["price"], details["quantity"], details["rating_total"], details["rating_frequency"], details["restock_frequency"]]
+    item = [product, details["rating_total"], details["rating_frequency"]]
     cart_items.append(item)
 
-result = [user_info, cart_items]
+coor = pullproduct (cart_items, df )
 
-coor = pullproduct (cart_items )
 
-update_rating ( coor, df , cart_items)
+print (cart_items)
+update_rating ( coor, df , cart_items, df)
+
+
+file_path = 'okedeh.csv'
+
+# Read the data from the CSV
+data = []
+with open(file_path, 'r') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        # Update the voucher for user_id 111
+        if row['user_ID'] == user_info[0]:
+            row['user_voucher'] = user_info[1]  # Replace 'NEW_VOUCHER_VALUE' with the actual value you want to set
+        data.append(row)
+
+# Write the updated data back to the CSV
+with open(file_path, 'r+', newline='') as csvfile:
+    fieldnames = data[0].keys()  # Get the field names from the data
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(data)
+    
+    
+print ( user_info ) 
