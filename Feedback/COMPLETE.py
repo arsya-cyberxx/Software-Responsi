@@ -112,14 +112,14 @@ async def send_via_ble(address, data, df, coor, cart, item_properties, user_ID, 
                 response = json.loads(received_data.decode('utf-8'))
                 print("Response from ESP32:", response)
 
-                # Process received JSON and update CSV
-                print("Updating rating and user voucher based on ESP32 response...")
-                update_rating(coor, df, [[product[0], item_properties[i][0], item_properties[i][1]] for i, product in enumerate(cart)], df)
-                update_user_voucher(str(int(user_ID)), user_voucher_eligible, df)
+                return response  # Return the response received from ESP32
             else:
                 print("Failed to connect to BLE device.")
+                return None
     except Exception as e:
         print(f"BLE error: {e}")
+        return None  # Return None in case of an exception
+
 
 # Send `login_status=0` via WebSocket
 async def send_via_websocket():
