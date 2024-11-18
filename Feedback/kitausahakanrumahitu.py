@@ -2,10 +2,12 @@ import asyncio
 from bleak import BleakClient
 import json
 import pandas as pd
-
+import websockets
+#BLE address and characteristic
 esp32_characteristic_uuid = "84c4e7af-b494-461b-8c55-125f88183792"
 address = "cc:7b:5c:26:cc:0a"
-
+# WebSocket server details (ESP32 IP address and port)
+websocket_url = "ws://192.168.18.5:5000"
 
 def pulldatauser(coor, data): 
     user_properties = []
@@ -105,13 +107,26 @@ data_to_send = {
     "cart": cart
 }
 
-json_data = json.dumps(data_to_send, indent=4)
-
-
-print(json_data)
-
 json_data = json.dumps(data_to_send).encode('utf-8')
 
+# Define websocket function
+async def send_via_websocket(data):
+    """Send data to ESP32 via WebSocket."""
+    try:
+        async with websockets.connect(websocket_url) as websocket:
+            print("Connected to WebSocket server.")
+            
+            # Send the data
+            await websocket.send(json.dumps(data))
+            print(f"Sent via WebSocket: {json.dumps(data, indent=4)}")
+
+            # Optionally, receive and print acknowledgment from the ESP32
+            response = await websocket.recv()
+            print(f"Response from WebSocket server: {response}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+
+# Define main function
 async def main(address):
     try:
         async with BleakClient(address, timeout=20.0) as client:
@@ -129,9 +144,11 @@ async def main(address):
                 received_data = await client.read_gatt_char(esp32_characteristic_uuid)
                 decoded_data = received_data.decode('utf-8')
                 received_json = json.loads(decoded_data)
+                # Step 4: Push Data to CSV
                 
-                print("Data received successfully:")
-                print(json.dumps(received_json, indent=4))  # Print JSON data in a readable format
+                # Step 5: Send login_status_off = 0 to ESP32 via WebSocket
+                login_status_data = {"login_status_off": 0}
+                await send_via_websocket(login_status_data)
             else:
                 print("Failed to connect.")
     except Exception as e:
