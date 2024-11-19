@@ -111,7 +111,7 @@ async def send_via_ble(address, data, df, coor, cart, item_properties, user_ID, 
                 # Receive response
                 received_data = await client.read_gatt_char(esp32_characteristic_uuid)
                 response = json.loads(received_data.decode('utf-8'))
-                print("Response from ESP32:", response)
+                
 
                 return response  # Return the response received from ESP32
             else:
