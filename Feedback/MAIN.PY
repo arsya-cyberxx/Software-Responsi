@@ -1,3 +1,4 @@
+
 import asyncio
 from complete import ble_transaction  # Import the BLE function from complete.py
 from class_processor import CartProcessor  # Assuming CartProcessor is in cart_processor.py
@@ -32,7 +33,7 @@ async def main():
     processor = DatabaseProcessor(file_path)
     
     # Run the processor with the provided JSON data
-    await processor.run(json_data)
+    await processor.run(response)
     await websocket_transaction()
     # Handle the response
     if response:
