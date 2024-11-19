@@ -1,7 +1,9 @@
 import asyncio
 from Loyalty.Loyalti import Loyalti
-from Multi_Item import Pengirim
+from Multi_Item import Pengirim, Penerima
 import pandas as pd
+import os
+
 df = pd.read_csv("okedeh.csv")
 
 class EventEmitter:
@@ -21,8 +23,31 @@ class EventEmitter:
                 return await listener(*args)
 
 # Listener for the "completed" event
-async def multiitem(file_path):
+def multiitemmengirim(file_path):
     Pengirim.mengirim(file_path)
+    return "multiitem menerima"
+
+def multiitemmenerima(file_path):
+    data_json=Penerima.menerima(file_path)
+    if not os.path.exists(file_path):
+        df = pd.DataFrame(columns=['cart'])
+    else:
+        df = pd.read_csv(file_path)
+
+    # Check if 'cart' column exists and is empty; if so, add the new message in a new row
+    if 'cart' not in df.columns:
+        df['cart'] = ''
+
+    # Append the new message as a new row
+    new_row = pd.DataFrame({'cart': [data_json]})
+    df = pd.concat([df, new_row], ignore_index=True)
+
+    # Save updated DataFrame back to CSV
+    df.to_csv(file_path, index=False)
+    print("Data saved to CSV.")
+
+    # Disconnect the client after the first message is received and processed
+    print("Message received and CSV updated. Disconnecting...")
     return "loyalti"
 
 async def loyalti():
@@ -32,7 +57,8 @@ async def loyalti():
 
 # Instantiate EventEmitter and register the listener
 event_emitter = EventEmitter()
-event_emitter.on("multiitem", multiitem)
+event_emitter.on("multiitem mengirim", multiitemmengirim)
+event_emitter.on("multiitem menerima", multiitemmengirim)
 event_emitter.on("loyalti", loyalti)
 
 # Continuously wait for "completed" input in main
@@ -40,7 +66,9 @@ async def main():
     user_input = "start"
     while True:
         if user_input == "start":
-            user_input = multiitem('okedeh.csv')
+            user_input = multiitemmengirim('okedeh.csv')
+        elif user_input == "multiitem menerima":
+            user_input= multiitemmenerima('okedeh.csv')
         elif user_input == "loyalti":
             user_input= await event_emitter.emit("loyalti")
             break

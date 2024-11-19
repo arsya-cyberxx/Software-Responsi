@@ -1,38 +1,38 @@
-#import context  # Ensures paho is in PYTHONPATH
 import pandas as pd
-import csv
-import json
 import paho.mqtt.client as mqtt
+import os
 
 def menerima(file_path):
-    def on_connect(mqttc, obj, flags, reason_code, properties):
-        print(str(reason_code))
-
-    def on_message(mqttc, obj, msg):
-        df = pd.read_csv(file_path)
-        data_json = msg.payload.decode("utf-8")
-        print(data_json)
-        if 'cart' not in df.columns:
-            df['cart'] = ''
-        if df['cart'].isnull().all() or (df['cart'] == '').all():
-            df.at[0, 'cart'] = data_json
+    # MQTT connection callback
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected successfully")
+            client.subscribe("esp32/terima")
         else:
-            new_row = pd.DataFrame({'cart': [data_json]})
-            df = pd.concat([df, new_row], ignore_index=True)
-        #df['cart'] = df['cart'].astype(str) + data_json + ';'
-        df.to_csv(file_path, index=False)
+            print(f"Connection failed with code {rc}")
 
-    def on_subscribe(mqttc, obj, mid, reason_code_list, properties):
-        print(str(reason_code_list))
+    # MQTT message callback
+    def on_message(client, userdata, msg):
+        # Read the CSV file into a DataFrame, creating if it doesn't exist
+        data_json = msg.payload.decode("utf-8")
+        client.disconnect()
+        return data_json
 
-    def on_log(mqttc, obj, level, string):
-        print(string)
+    # MQTT log callback for debugging
+    def on_log(client, userdata, level, buf):
+        print(f"Log: {buf}")
 
-    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    mqttc.on_message = on_message
-    mqttc.on_connect = on_connect
-    mqttc.on_subscribe = on_subscribe
-    mqttc.connect("192.168.4.170", 1890, 60)
-    mqttc.subscribe("esp32/terima")
+    # Set up MQTT client
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_log = on_log
 
-    mqttc.loop_forever()
+    try:
+        client.connect("192.168.4.170", 1890, 60)
+        client.loop_forever()  # Blocks the main thread, handling reconnections if necessary
+    except Exception as e:
+        print(f"Error connecting to MQTT broker: {e}")
+
+# Usage
+menerima('output.csv')

@@ -2,7 +2,6 @@ import csv
 import time
 import paho.mqtt.client as mqtt
 import json
-import Penerima
 
 def mengirim(file_path):
     # Inisialisasi client MQTT
@@ -33,4 +32,3 @@ def mengirim(file_path):
     print(f"Data terkirim: {message}")
 
     client.disconnect()
-    Penerima.menerima(file_path)

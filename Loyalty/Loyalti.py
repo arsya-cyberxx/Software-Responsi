@@ -90,6 +90,6 @@ class Loyalti:
             
             return jsonify({'status': 'Failed to receive data'}), 500
 
-if __name__ == '__main__':
+async def run():
     loyalti_app = Loyalti()
     loyalti_app.app.run(host='0.0.0.0', port=5000, debug=True)
