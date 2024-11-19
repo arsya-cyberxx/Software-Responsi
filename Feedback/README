@@ -1,1 +1,41 @@
+FORMAT PULL SERVER
+data_to_pull = {
+    "user_ID": "111",
+    "user_voucherEligible": True,
+    "cart": {
+        "Product C": {
+            "rating_total": 40,
+            "rating_frequency": 7
+        },
+        "Product B": {
+            "rating_total": 40,
+            "rating_frequency": 21
+        }
+    },
+    "restock_frequency": {
+        "A": 40,
+        "B": 5,
+        "C": 2,
+        "D": 10
+    }
+}
 
+json_data = json.dumps(data_to_pull).encode('utf-8')
+
+
+FORMAT PUSH SERVER
+
+data_to_push = {
+    "user_ID": "333",
+    "user_voucher" : 11,
+    "cart": {
+        "Product A": {
+            "rating_total": 40124,
+            "rating_frequency": 12000000,
+        },
+        "Product B": {
+            "rating_total": 4012312,
+            "rating_frequency": 8022234,
+        }
+    }
+}
