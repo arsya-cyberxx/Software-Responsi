@@ -101,7 +101,7 @@ data_to_send_ble = {
 
 # Send data via BLE
 # BLE Communication
-async def send_via_ble(address, data, df, coor, cart, item_properties, user_ID, user_voucher_eligible):
+async def ble_transaction(address,data):
     try:
         async with BleakClient(address, timeout=20.0) as client:
             if client.is_connected:
@@ -111,8 +111,6 @@ async def send_via_ble(address, data, df, coor, cart, item_properties, user_ID, 
                 # Receive response
                 received_data = await client.read_gatt_char(esp32_characteristic_uuid)
                 response = json.loads(received_data.decode('utf-8'))
-                
-
                 return response  # Return the response received from ESP32
             else:
                 print("Failed to connect to BLE device.")
@@ -123,20 +121,18 @@ async def send_via_ble(address, data, df, coor, cart, item_properties, user_ID, 
 
 
 # Send `login_status=0` via WebSocket
-async def send_via_websocket():
+async def websocket_transaction():
     try:
         async with websockets.connect(websocket_url) as websocket:
-            print("Connected to WebSocket server.")
             login_status_data = {"login_status": 0}
             await websocket.send(json.dumps(login_status_data))
-            print("Login status sent via WebSocket:", login_status_data)
     except Exception as e:
         print(f"WebSocket error: {e}")
 
-# Main function
-async def main():
-    await send_via_ble(address, data_to_send_ble, df, coor, cart, item_properties, user_ID, user_voucher_eligible)
-    await send_via_websocket()
+# # Main function
+# async def main():
+#     await send_via_ble(address, data_to_send_ble, df, coor, cart, item_properties, user_ID, user_voucher_eligible)
+#     await send_via_websocket()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
