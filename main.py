@@ -51,8 +51,7 @@ def multiitemmenerima(file_path):
     return "loyalti"
 
 async def loyalti():
-    loyalti_app = Loyalti()
-    loyalti_app.app.run(host='0.0.0.0', port=5000, debug=True)
+    await loyalti()
     return "payment"
 
 # Instantiate EventEmitter and register the listener

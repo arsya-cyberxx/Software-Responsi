@@ -30,13 +30,13 @@ def send_stock(file_path, ser):
     if len(totalharga)!=3:
         totalharga='0'*(3-len(totalharga))+totalharga
     
-    binerharga=[]
-    for i in totalharga:
-        biner = format(int(i), '004b')
-        binerharga.append(biner)
-    binerharga=''.join(binerharga)
-    ser.write(binerharga.encode())
-    return binerharga
+    # binerharga=[]
+    # for i in totalharga:
+    #     biner = format(int(i), '004b')
+    #     binerharga.append(biner)
+    # binerharga=''.join(binerharga)
+    ser.write(totalharga.encode())
+    return totalharga
 
 if __name__ == "__main__":
     file_path = 'okedeh.csv'
