@@ -1,8 +1,8 @@
 
 import asyncio
 from complete import ble_transaction  # Import the BLE function from complete.py
-from class_processor import CartProcessor  # Assuming CartProcessor is in cart_processor.py
-from class_processor import DatabaseProcessor
+from processor_utils import CartProcessor  # Assuming CartProcessor is in cart_processor.py
+from processor_utils import DatabaseProcessor
 from complete import websocket_transaction
 import pandas as pd
 from datetime import datetime
