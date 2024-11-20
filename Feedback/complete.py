@@ -193,9 +193,9 @@ class DatabaseProcessor:
         new_rating (list): New rating data to update.
         """
         df = pd.read_csv(self.file_path)
-        for i in coor:
+        for i in range(len(coor)):
             for x in range(2):  # Assuming updating columns 13 and 14
-                df.iloc[i, x + 13] = new_rating[i][x + 1]
+                df.iloc[coor[i], x + 13] = new_rating[i][x + 1]
         df.to_csv(self.file_path, index=False)
         print("Database has been updated.")
 
@@ -247,32 +247,26 @@ class DatabaseProcessor:
         # Update ratings
         self.update_rating(coor, cart_items)
 
-        # Update user voucher
-        self.update_user_voucher(user_info[0], user_info[1])
-        print("User voucher updated.")
+        # Update user voucher with timestamp
+        self.update_voucher_time(user_info[0], user_info[1], datetime.now(), df)
 
-    def update_user_voucher(self, user_ID, user_voucher):
+    def update_voucher_time(self, user_ID: int, user_voucher: int, time: datetime, data: pd.DataFrame):
         """
-        Update the user's voucher in the CSV file.
+        Update the 'user_voucher' and 'voucher_time' columns for the given user_ID in the provided DataFrame.
         
         Args:
-        user_ID (str): The user ID to update.
-        user_voucher (str): The new voucher value.
+        user_ID (int): The ID of the user to update.
+        user_voucher (int): The voucher value to assign to the user.
+        time (datetime): The datetime when the voucher is assigned.
+        data (pd.DataFrame): The DataFrame containing the data.
         """
-        data = []
-        with open(self.file_path, 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row['user_ID'] == user_ID:
-                    row['user_voucher'] = user_voucher
-                data.append(row)
-
-        with open(self.file_path, 'w', newline='') as csvfile:
-            fieldnames = data[0].keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(data)
-
+        if user_ID in data['user_ID'].values:
+            data.loc[data['user_ID'] == user_ID, 'user_voucher'] = user_voucher
+            data.loc[data['user_ID'] == user_ID, 'voucher_time'] = time.strftime('%H:%M:%S')
+            print(f"Updated user_ID {user_ID} with user_voucher {user_voucher} and voucher_time {time.strftime('%H:%M:%S')}")
+            data.to_csv(self.file_path, index=False)
+        else:
+            print(f"user_ID {user_ID} not found in the dataset.")
 
 # # Example Usage
 # if __name__ == "__main__":
