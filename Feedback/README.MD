@@ -1,3 +1,9 @@
+FILE USED FOR RUNNING THE PROGRAMS ARE THE FOLLOWINGS:
+1. MAIN.py 
+2. processor_utils.py
+3. transaction.py
+
+
 FORMAT PULL SERVER
 data_to_pull = {
     "user_ID": "111",
