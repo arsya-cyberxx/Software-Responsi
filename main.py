@@ -1,5 +1,5 @@
 import asyncio
-from Loyalty.Loyalti import Loyalti
+from Loyalty import Loyalti
 from Multi_Item import Pengirim, Penerima
 import pandas as pd
 import os
@@ -51,7 +51,7 @@ def multiitemmenerima(file_path):
     return "loyalti"
 
 async def loyalti():
-    await loyalti()
+    await Loyalti.loyalti()
     return "payment"
 
 # Instantiate EventEmitter and register the listener
