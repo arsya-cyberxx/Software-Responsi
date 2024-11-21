@@ -14,10 +14,23 @@
 #define PASSWORD_SIZE 4      // Ukuran Password
 #define STATUS_BUFFER_SIZE 1 // Buffer untuk menerima status dari ESP32
 
-uint8_t idBuffer[ID_SIZE];       // Buffer untuk ID
+#define LED_ID_BENAR_BIT        0x01  // Control Register Bit untuk LED_ID_Benar (control_0)
+#define LED_SALAH_BIT           0x02  // Control Register Bit untuk LED_Salah (control_1)
+#define LED_GANTI_PASSWORD_BIT  0x04  // Control Register Bit untuk LED_Ganti_Password (control_2)
+#define LED_PASSWORD_BIT        0x08  // Control Register Bit untuk LED_Password (control_3)
+#define LED_PW_BENAR_BIT        0x10  // Control Register Bit untuk LED_PW_Benar (control_4)
+#define LED_OFF                 0x00  // Semua LED mati
+// Variables
+uint8_t idBuffer[ID_SIZE];          // Buffer untuk ID
 uint8_t passwordBuffer[PASSWORD_SIZE]; // Buffer untuk Password
 uint8_t statusBuffer[STATUS_BUFFER_SIZE]; // Buffer untuk menerima status dari ESP32
-uint8_t confirmationCount = 0;   // Counter untuk jumlah konfirmasi karakter
+uint8_t confirmationCount = 0;      // Counter untuk jumlah konfirmasi karakter
+bool idReadyToSend = false;         // Flag untuk memastikan ID hanya dikirim jika sudah lengkap
+bool passwordReadyToSend = false;   // Flag untuk memastikan Password hanya dikirim jika sudah lengkap
+bool idValidated = false;           // Flag untuk memastikan ID sudah divalidasi
+uint8_t previousStatus = 0xFF;      // Variabel untuk menyimpan status sebelumnya
+uint8_t controlRegisterState = 0x00; // Variabel untuk menyimpan status control register
+
 uint8_t characterTable[37][6] = {
     {0, 0, 0, 0, 0, 0}, // A
     {0, 0, 0, 0, 0, 1}, // A
@@ -68,9 +81,6 @@ char convertToCharPW(uint8_t value) {
     }
     return '?'; // Jika nilai di luar jangkauan, tampilkan sebagai '?'
 }
-bool idReadyToSend = false;      // Flag untuk memastikan ID hanya dikirim jika sudah lengkap
-bool passwordReadyToSend = false; // Flag untuk memastikan Password hanya dikirim jika sudah lengkap
-bool idValidated = false;        // Flag untuk memastikan ID sudah divalidasi
 
 // Fungsi untuk mengonversi nilai biner ke karakter alfanumerik
 char convertToCharID(uint8_t value) {
@@ -94,7 +104,40 @@ void readIDFromStatusRegisters() {
         idReadyToSend = true;  // Tandai bahwa ID lengkap dan siap dikirim
     }
 }
+// Fungsi Hard Reset untuk semua LED
+void hardResetLED() {
+    Control_Reg_1_Write(0x00);  // Reset semua LED
+    CyDelay(500);  // Delay untuk memastikan LED benar-benar mati
+}
+// Fungsi untuk memperbarui status LED berdasarkan status
+void updateLED(uint8_t status) {
+    controlRegisterState = 0x00;  // Reset state
 
+    // Logika kontrol untuk masing-masing LED
+    if (status == 0x01) {
+        controlRegisterState |= LED_ID_BENAR_BIT;
+        
+    }
+    if (status == 0x02) {
+        controlRegisterState |= LED_SALAH_BIT;
+
+    }
+    if (status == 0x03) {
+        controlRegisterState |= LED_PW_BENAR_BIT;
+
+    }
+    if (status == 0x04) {
+        controlRegisterState |= LED_GANTI_PASSWORD_BIT;
+    
+    }
+    if (status == 0x05) {
+        controlRegisterState |= LED_PASSWORD_BIT;
+
+    }
+
+    // Tulis ke Control Register
+    Control_Reg_1_Write(controlRegisterState);
+}
 // Fungsi untuk membaca Password dari Status Register
 void readPasswordFromStatusRegisters() {
     if (confirmationCount == 1) {
@@ -135,10 +178,11 @@ int main(void) {
 
     // Matikan semua LED pada awalnya
     Control_Reg_1_Write(0x00);
-
+    hardResetLED();
     for (;;) {
+     
         // Proses input ID
-        if (!idValidated && KonfirmasiID_Read() == 0) { // Asumsi tombol KonfirmasiID aktif rendah
+        if (!idReadyToSend && KonfirmasiID_Read() == 0) { // Asumsi tombol KonfirmasiID aktif rendah
             CyDelay(20); // Debounce delay
             if (KonfirmasiID_Read() == 0) { // Pastikan tombol masih ditekan
                 confirmationCount++; // Menambah counter konfirmasi
@@ -150,7 +194,7 @@ int main(void) {
                 if (confirmationCount == ID_SIZE) {
                     prepareIDForSending();  // Siapkan ID untuk dikirim
                     confirmationCount = 0;  // Reset counter setelah konfirmasi selesai
-                    idValidated = true;     // Tandai bahwa ID sudah divalidasi
+                    idReadyToSend = true;     // Tandai bahwa ID sudah divalidasi
                 }
 
                 // Tunggu sampai tombol dilepas sebelum pembacaan berikutnya
@@ -159,7 +203,7 @@ int main(void) {
         }
 
         // Proses input Password
-        if (idValidated && KonfirmasiPassword_Read() == 0) { // Asumsi tombol KonfirmasiPassword aktif rendah
+        if (!passwordReadyToSend && KonfirmasiPassword_Read() == 0) { // Asumsi tombol KonfirmasiPassword aktif rendah
             CyDelay(20); // Debounce delay
             if (KonfirmasiPassword_Read() == 0) { // Pastikan tombol masih ditekan
                 confirmationCount++; // Menambah counter konfirmasi
@@ -171,6 +215,7 @@ int main(void) {
                 if (confirmationCount == PASSWORD_SIZE) {
                     preparePasswordForSending();  // Siapkan Password untuk dikirim
                     confirmationCount = 0;        // Reset counter setelah konfirmasi selesai
+                    passwordReadyToSend = true;
                 }
 
                 // Tunggu sampai tombol dilepas sebelum pembacaan berikutnya
@@ -192,19 +237,29 @@ int main(void) {
             passwordReadyToSend = false; // Reset flag setelah Password dikirim
         }
 
-        // Cek apakah status login diterima dari ESP32
-        if (I2CS_SlaveStatus() & I2CS_SSTAT_WR_CMPLT) {
-            // Jika status login berhasil atau gagal diterima
-            if (statusBuffer[0] == 0x01) {
-                Control_Reg_1_Write(0x02);  // Login berhasil, nyalakan LED_password
-            } else if (statusBuffer[0] == 0x02) {
-                Control_Reg_1_Write(0x00);  // Matikan LED_password, ID atau Password salah
-                confirmationCount = 0;      // Reset counter konfirmasi
-                idValidated = false;        // Reset validasi ID
+    // Periksa apakah status baru diterima dari ESP32
+if (I2CS_SlaveStatus() & I2CS_SSTAT_WR_CMPLT) {
+            uint8_t currentStatus = statusBuffer[0];
+
+            if (currentStatus != previousStatus) {
+                previousStatus = currentStatus;
+                controlRegisterState = 0x00;  // Reset semua LED
+
+                if (currentStatus == 0x01) controlRegisterState |= LED_ID_BENAR_BIT;
+                if (currentStatus == 0x02) controlRegisterState |= LED_SALAH_BIT;
+                if (currentStatus == 0x03) controlRegisterState |= LED_PW_BENAR_BIT;
+                if (currentStatus == 0x04) controlRegisterState |= LED_GANTI_PASSWORD_BIT;
+                if (currentStatus == 0x05) controlRegisterState |= LED_PASSWORD_BIT;
+
+                Control_Reg_1_Write(controlRegisterState);
+                CyDelay(1000);
+
+                Control_Reg_1_Write(0x00);  // Reset setelah delay
             }
-            I2CS_SlaveClearWriteStatus(); // Clear status setelah data diterima
+
+            I2CS_SlaveClearWriteStatus();
         }
 
-        CyDelay(500); // Delay untuk stabilisasi sistem
+        CyDelay(100);
     }
 }
