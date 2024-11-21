@@ -1,5 +1,4 @@
 #include <RH_ASK.h>
-#include <SoftwareSerial.h> 
 RH_ASK driver;  // RF driver (pin 12 TX, pin 11 RX)
 
 void setup() {
@@ -8,9 +7,9 @@ void setup() {
 
 void loop() {
     // Menerima data dari phyton berupa total harga
-    if (uno.available() > 0) {
-        String data = uno.readString(); 
-        uno.print(data); // Membaca data total harga via komunikasi serial
+    if (Serial.available() > 0) {
+        String data = Serial.readString(); 
+         // Membaca data total harga via komunikasi serial
 
         // Mengirim data melalui RF
         const char msg = data.c_str();  // Konversi String to char
