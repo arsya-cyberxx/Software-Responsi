@@ -26,6 +26,7 @@ State currentState = STATE_INPUT_ID;  // Mulai dari input ID
 String currentID = "";
 String currentPassword = "";
 bool idValidated = false;  // Menandakan apakah ID sudah valid
+bool isSystemActive = false;
 
 void setup() {
     Serial.begin(115200);
@@ -118,6 +119,7 @@ void handleMessage(WebsocketsMessage message) {
             currentState = STATE_INPUT_PASSWORD;
         } else if (strcmp(login_status, "success") == 0) {
             Serial.println("Login berhasil!");
+            isSystemActive = true;  // Sistem mulai aktif
             idValidated = false;
             currentState = STATE_INPUT_ID;  // Reset ke awal
         } else if (strcmp(login_status, "failed") == 0 && strcmp(messageText, "ID not found") == 0) {
@@ -126,6 +128,11 @@ void handleMessage(WebsocketsMessage message) {
         } else if (strcmp(login_status, "failed") == 0 && strstr(messageText, "Password incorrect") != NULL) {
             Serial.println("Password salah, ulangi input password.");
             currentState = STATE_INPUT_PASSWORD;
+        } else if (strcmp(login_status, "0") == 0 && isSystemActive) {
+            Serial.println("Login status diubah menjadi 0. Mematikan sistem.");
+            digitalWrite(LED_BENAR, LOW);  // Matikan LED Benar   
+            isSystemActive = false;       // Nonaktifkan sistem
+            currentState = STATE_INPUT_ID;  // Reset ke awal
         }
     }
 }
