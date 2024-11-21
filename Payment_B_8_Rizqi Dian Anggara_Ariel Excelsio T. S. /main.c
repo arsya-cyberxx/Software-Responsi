@@ -16,8 +16,10 @@
 #define PULUHAN_CONTROL_REG Control_Reg_Puluhan_Write
 #define SATUAN_CONTROL_REG Control_Reg_Satuan_Write
 
+
+
 // Fungsi Untuk menulis pada control register
-void set_control_registers(const char *data) {
+void set_control_registers(char *data) {
     // Ekstrak setiap 1 digit dan buffer masing-masing untuk setiap digit.
     char ratusan_data[DIGIT_COUNT + 1] = {0};
     char puluhan_data[DIGIT_COUNT + 1] = {0};
@@ -26,11 +28,15 @@ void set_control_registers(const char *data) {
     strncpy(ratusan_data, data, DIGIT_COUNT);       // Mengambil digit ratusan 
     strncpy(puluhan_data, data + DIGIT_COUNT, DIGIT_COUNT);  // Digit puluhan
     strncpy(satuan_data, data + 2 * DIGIT_COUNT, DIGIT_COUNT); // Digit satuan
-
+    
+    uint8_t ratusan = atoi(ratusan_data);
+    uint8_t puluhan = atoi(puluhan_data);
+    uint8_t satuan = atoi(satuan_data);
+    
     // Konversi tipe data yang diperoleh melalui UART agar dapat ditulis pada control register
-    RATUSAN_CONTROL_REG(atoi(ratusan_data)); // Write digit ratusan
-    PULUHAN_CONTROL_REG(atoi(puluhan_data)); // Write digit puluhan
-    SATUAN_CONTROL_REG(atoi(satuan_data));   // Write digit satuan
+    RATUSAN_CONTROL_REG(ratusan); // Write digit ratusan
+    PULUHAN_CONTROL_REG(puluhan); // Write digit puluhan
+    SATUAN_CONTROL_REG(satuan);   // Write digit satuan
 }
 
 // Fungsi komparasi input dan total harga lalu mengirim status register untuk update data server
@@ -44,7 +50,6 @@ void send_status_via_uart(void) {
         UART_PutString("Payment Failed");
     }
 }
-
 int main(void) {
     CyGlobalIntEnable;
     UART_Start();
@@ -53,6 +58,7 @@ int main(void) {
     char received_data[3] = {0}; // Buffer 3 karakter
     int index = 0;
     
+    
     for (;;) {
         char received = UART_GetChar();
             // Proses data sampai 3 karakter terbaca
@@ -60,15 +66,13 @@ int main(void) {
             if (index < 4) {
                 received_data[index++] = received;
             }
-                // Setelah memperoleh semua karakter, diproses 
-            else {
-                received_data[index] = '\0';  // Null-terminate untuk satu string
-                set_control_registers(received_data); // Mengirim data pada control register
-                send_status_via_uart(); // Fungsi komparasi pembayaran
+            // Setelah memperoleh semua karakter, diproses 
+            received_data[index] = '\0';  // Null-terminate untuk satu string
+            set_control_registers(received_data); // Mengirim data pada control register
+            send_status_via_uart(); // Fungsi komparasi pembayaran
                     
-                index = 0; // Reset index untuk proses selanjutnya
-                memset(received_data, 0, sizeof(received_data)); // Clear buffer
+            index = 0; // Reset index untuk proses selanjutnya
+            memset(received_data, 0, sizeof(received_data)); // Clear buffer
                 }
             } 
-        }
 }
