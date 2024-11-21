@@ -10,21 +10,14 @@ void setup() {
 }
 
 void loop() {
-  uint8_t buf[RH_ASK_MAX_MESSAGE_LEN]; // Buffer untuk menerima data
+  uint8_t buf[100]; // Buffer untuk menerima data
   uint8_t buflen = sizeof(buf);       // Size dari buffer
 
   // Memeriksa ukuran data yang diterim
-  if (driver.recv(buf, &buflen)) {
-    buf[buflen] = '\0';  // Terminator untuk memastikan string
-
-    // Mengolah buffer untuk setiap char
-    char receivedData[buflen + 1];  // Membuat string berdasarkan buffer
-    for (uint8_t i = 0; i < buflen; i++) {
-      receivedData[i] = (char)buf[i];  // Konversi masing masing menjadi char
-    }
-    receivedData[buflen] = '\0';  // Null-terminate the string
-    // Mengirim data ke PSoC dengan UART
-    psoc.print(receivedData); 
+  if (Serial.available() > 0) {
+      String receivedData = Serial.readString(); // Membaca data sampai newline
+      Serial.println(receivedData); // Menampilkan data di Serial Monitor
+      psoc.write(receivedData.c_str()); // Mengirim data ke PSoC
   }
 
   // Menerima data komparasi dari PSoC ke arduino receiver dengan UART
@@ -39,5 +32,4 @@ void loop() {
       Serial.println("Gagal"); //String untuk mengupdate login status dan mengeksekusi fungsi security
     }
   }
-  delay(1000);  // Delay
 }
