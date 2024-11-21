@@ -1,5 +1,5 @@
 import csv
-#import serial  # Modul untuk komunikasi serial (dapat diaktifkan jika digunakan)
+import serial  # Modul untuk komunikasi serial 
 import pandas as pd  # Modul untuk manipulasi data dalam format seperti CSV
 import time
 import update_csv  # Modul eksternal (tidak jelas penggunaannya dari kode ini)
@@ -10,7 +10,7 @@ def comserial(com_port, baud_rate=9600):
     ser = serial.Serial(
         port=com_port,          # Port komunikasi serial (misalnya COM3)
         baudrate=baud_rate,     # Baud rate untuk komunikasi serial
-        parity=serial.PARITY_ODD,  # Jenis parity (diatur ke OD)
+        parity=None,  # Jenis parity (diatur ke OD)
         stopbits=serial.STOPBITS_ONE,  # Stop bits (1 bit)
         bytesize=serial.EIGHTBITS,  # Ukuran byte (8 bit)
         timeout=3               # Waktu tunggu (timeout) dalam detik
@@ -43,18 +43,9 @@ def send_stock(file_path, ser):
     totalharga = str(totalharga)
     if len(totalharga) != 3:
         totalharga = '0' * (3 - len(totalharga)) + totalharga  # Pastikan total harga 3 digit
-    
-    binerharga = []  # Daftar untuk menyimpan representasi biner dari setiap digit
-    
-    # Konversi setiap digit dari total harga menjadi biner 4 bit
-    for i in totalharga:
-        biner = format(int(i), '004b')  # Format ke biner 4 bit
-        binerharga.append(biner)
-    
-    # Gabungkan semua digit biner menjadi satu string
-    binerharga = ''.join(binerharga)
-    ser.write(binerharga.encode())
-    return binerharga  # Mengembalikan harga dalam format biner
+
+    ser.write(totalharga.encode())
+    return totalharga  # Mengembalikan harga dalam format biner
 
 # Blok utama (dieksekusi jika file ini dijalankan langsung)
 if __name__ == "__main__":
