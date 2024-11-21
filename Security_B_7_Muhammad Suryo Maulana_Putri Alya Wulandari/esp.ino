@@ -11,22 +11,34 @@ const char* wifi_password = "akuganteng";
 const char* websockets_server_host = "ws://192.168.112.200:5000";
 
 WebsocketsClient client;
-const int PSoC_I2C_ADDRESS = 0x08;
+const int PSoC_I2C_ADDRESS = 0x08;  // Alamat I2C PSoC
+unsigned long lastPingTime = 0;     // Waktu terakhir ping
+
+// Variabel untuk timer
+unsigned long timerStartTime = 0; // Waktu mulai timer
+bool reminderTriggered = false;  // Status apakah reminder sudah menyala
+bool passwordChangeRequired = false; // Status apakah perlu ganti password
 
 // State untuk State Machine
 enum State {
     STATE_INPUT_ID,
     STATE_SEND_ID,
     STATE_INPUT_PASSWORD,
-    STATE_SEND_PASSWORD
+    STATE_SEND_PASSWORD,
+    STATE_PASSWORD_TIMER,
+    STATE_RESET
 };
-State currentState = STATE_INPUT_ID;  // Mulai dari input ID
+State currentState = STATE_INPUT_ID;
 
-// Variabel global
-String currentID = "";
-String currentPassword = "";
-bool idValidated = false;  // Menandakan apakah ID sudah valid
-bool isSystemActive = false;
+// Deklarasi fungsi
+void requestUserID(String &user_ID);
+void requestUserPassword(String &user_password);
+bool validateID(const String &user_ID);
+bool validatePassword(const String &user_password);
+void sendIDRequest(const String& user_ID);
+void sendPasswordRequest(const String& user_password);
+void handleMessage(WebsocketsMessage message);
+void sendStatusToPSoC(uint8_t status);
 
 void setup() {
     Serial.begin(115200);
@@ -52,6 +64,13 @@ void setup() {
 void loop() {
     client.poll();  // Periksa pesan yang masuk dari server
 
+    // Kirim ping untuk menjaga koneksi WebSocket tetap aktif
+    if (millis() - lastPingTime > 30000) {
+        client.ping();
+        lastPingTime = millis();
+        Serial.println("Ping dikirim untuk menjaga koneksi WebSocket aktif.");
+    }
+
     switch (currentState) {
         case STATE_INPUT_ID:
             handleInputID();
@@ -65,9 +84,15 @@ void loop() {
         case STATE_SEND_PASSWORD:
             handleSendPassword();
             break;
+        case STATE_PASSWORD_TIMER:
+            handlePasswordTimer();
+            break;
+        case STATE_RESET:
+            handleReset();
+            break;
     }
 
-    delay(100);  // Stabilisasi loop
+    delay(100);  // Stabilitas loop
 }
 
 void handleInputID() {
@@ -75,7 +100,7 @@ void handleInputID() {
     String userID;
     requestUserID(userID);
     if (validateID(userID)) {
-        currentID = userID;  // Simpan ID
+        sendIDRequest(userID);
         currentState = STATE_SEND_ID;
     } else {
         Serial.println("ID tidak valid, coba lagi...");
@@ -83,8 +108,8 @@ void handleInputID() {
 }
 
 void handleSendID() {
-    sendIDRequest(currentID);
     Serial.println("ID dikirim ke server.");
+    // Transisi akan diatur oleh handleMessage saat respons diterima dari server
 }
 
 void handleInputPassword() {
@@ -92,16 +117,42 @@ void handleInputPassword() {
     String userPassword;
     requestUserPassword(userPassword);
     if (validatePassword(userPassword)) {
-        currentPassword = userPassword;  // Simpan password
-        currentState = STATE_SEND_PASSWORD;
+        sendPasswordRequest(userPassword);
+        timerStartTime = millis(); // Mulai timer untuk 1,5 menit
+        reminderTriggered = false; // Reset reminder
+        passwordChangeRequired = false; // Reset password ganti
+        Serial.println("Timer 1,5 menit dimulai!");
+        currentState = STATE_PASSWORD_TIMER;
     } else {
         Serial.println("Password tidak valid, coba lagi...");
     }
 }
 
 void handleSendPassword() {
-    sendPasswordRequest(currentPassword);
     Serial.println("Password dikirim ke server.");
+    // Transisi akan diatur oleh handleMessage saat respons diterima dari server
+}
+
+void handlePasswordTimer() {
+    unsigned long elapsedTime = millis() - timerStartTime;
+    if (!reminderTriggered && elapsedTime >= 90000) {
+        reminderTriggered = true;
+        sendStatusToPSoC(0x04); // Nyalakan LED_Ganti_Password
+        Serial.println("Reminder: LED_Ganti_Password menyala.");
+        timerStartTime = millis(); // Reset untuk timer 30 detik
+    } else if (reminderTriggered && elapsedTime >= 30000) {
+        passwordChangeRequired = true; // Tandai bahwa ganti password diperlukan
+        sendStatusToPSoC(0x00); // Matikan LED_Ganti_Password
+        Serial.println("LED_Ganti_Password mati. Sistem terkunci, ganti password diperlukan.");
+        currentState = STATE_RESET;
+    }
+}
+
+void handleReset() {
+    Serial.println("Sistem di-reset untuk menerima ID baru.");
+    reminderTriggered = false;
+    passwordChangeRequired = false;
+    currentState = STATE_INPUT_ID;
 }
 
 void handleMessage(WebsocketsMessage message) {
@@ -114,26 +165,24 @@ void handleMessage(WebsocketsMessage message) {
         const char* messageText = doc["message"];
 
         if (strcmp(login_status, "id_valid") == 0) {
-            idValidated = true;
-            Serial.println("ID valid, lanjut ke input password.");
-            currentState = STATE_INPUT_PASSWORD;
+            sendStatusToPSoC(0x01);  // Kirim sinyal ID valid ke PSoC
+            Serial.println("ID valid.");
+            currentState = STATE_INPUT_PASSWORD; // Lanjut ke input password
         } else if (strcmp(login_status, "success") == 0) {
-            Serial.println("Login berhasil!");
-            isSystemActive = true;  // Sistem mulai aktif
-            idValidated = false;
+            sendStatusToPSoC(0x03);  // Kirim sinyal login berhasil ke PSoC
+            Serial.println("Login berhasil.");
             currentState = STATE_INPUT_ID;  // Reset ke awal
         } else if (strcmp(login_status, "failed") == 0 && strcmp(messageText, "ID not found") == 0) {
-            Serial.println("ID tidak valid, ulangi input ID.");
-            currentState = STATE_INPUT_ID;
+            sendStatusToPSoC(0x02);  // Kirim sinyal ID salah ke PSoC
+            Serial.println("ID tidak valid. Silakan input ulang.");
+            currentState = STATE_INPUT_ID; // Ulang input ID
         } else if (strcmp(login_status, "failed") == 0 && strstr(messageText, "Password incorrect") != NULL) {
-            Serial.println("Password salah, ulangi input password.");
-            currentState = STATE_INPUT_PASSWORD;
-        } else if (strcmp(login_status, "0") == 0 && isSystemActive) {
-            Serial.println("Login status diubah menjadi 0. Mematikan sistem.");
-            digitalWrite(LED_BENAR, LOW);  // Matikan LED Benar   
-            isSystemActive = false;       // Nonaktifkan sistem
-            currentState = STATE_INPUT_ID;  // Reset ke awal
+            sendStatusToPSoC(0x02);  // Kirim sinyal password salah ke PSoC
+            Serial.println("Password salah. Silakan input ulang.");
+            currentState = STATE_INPUT_PASSWORD; // Ulang input password
         }
+    } else {
+        Serial.println("Error: Parsing JSON gagal.");
     }
 }
 
@@ -166,21 +215,20 @@ void requestUserPassword(String &user_password) {
 }
 
 bool validateID(const String &user_ID) {
-    if (user_ID.length() != 3) return false;  // Panjang harus 3
+    if (user_ID.length() != 3) return false;
     for (size_t i = 0; i < user_ID.length(); i++) {
-        if (!isalnum(user_ID[i])) return false;  // Periksa apakah alfanumerik
+        if (!isalnum(user_ID[i])) return false;
     }
-    return true;  // Semua karakter valid
+    return true;
 }
 
 bool validatePassword(const String &user_password) {
-    if (user_password.length() != 4) return false;  // Panjang harus 4
+    if (user_password.length() != 4) return false;
     for (size_t i = 0; i < user_password.length(); i++) {
-        if (!isalnum(user_password[i])) return false;  // Periksa apakah alfanumerik
+        if (!isalnum(user_password[i])) return false;
     }
-    return true;  // Semua karakter valid
+    return true;
 }
-
 
 void sendIDRequest(const String& user_ID) {
     StaticJsonDocument<200> doc;
@@ -188,6 +236,7 @@ void sendIDRequest(const String& user_ID) {
     String jsonData;
     serializeJson(doc, jsonData);
     client.send(jsonData);
+    Serial.println("ID dikirim ke server.");
 }
 
 void sendPasswordRequest(const String& user_password) {
@@ -196,4 +245,11 @@ void sendPasswordRequest(const String& user_password) {
     String jsonData;
     serializeJson(doc, jsonData);
     client.send(jsonData);
+    Serial.println("Password dikirim ke server.");
+}
+
+void sendStatusToPSoC(uint8_t status) {
+    Wire.beginTransmission(PSoC_I2C_ADDRESS);
+    Wire.write(status);
+    Wire.endTransmission();
 }
