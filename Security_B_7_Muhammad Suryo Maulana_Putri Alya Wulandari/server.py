@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 # Baca data pengguna dari CSV
-data = pd.read_csv('okedeh.csv')
+data = pd.read_csv('DataUser.csv')
 login_attempts = {}         # Melacak percobaan login untuk setiap user ID
 password_reset_stage = {}    # Menyimpan status reset password untuk setiap user ID
 
@@ -13,7 +13,7 @@ print("Server is starting...")
 
 # Fungsi untuk menyimpan data kembali ke CSV setelah perubahan
 def save_data():
-    data.to_csv('okedeh.csv', index=False)
+    data.to_csv('DataUser.csv', index=False)
     print("Data saved to CSV.")
 
 # Fungsi untuk menangani setiap koneksi WebSocket
@@ -70,6 +70,8 @@ async def handle_connection(websocket, path):
 
                 # Verifikasi password
                 if user_password == correct_password:
+                    # Reset counter kesalahan password untuk user ini
+                    login_attempts[user_ID] = 0  # Reset counter
                     # Login berhasil: Update login_status dan user_lastLogin
                     data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'login_status'] = 1
                     data.loc[data['user_ID'].astype(str).str.strip() == user_ID, 'user_lastLogin'] = datetime.now().isoformat()
