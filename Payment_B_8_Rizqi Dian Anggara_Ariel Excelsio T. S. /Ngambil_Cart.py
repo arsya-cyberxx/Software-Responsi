@@ -2,7 +2,7 @@ import csv
 import serial  # Modul untuk komunikasi serial 
 import pandas as pd  # Modul untuk manipulasi data dalam format seperti CSV
 import time
-import update_csv  # Modul eksternal (tidak jelas penggunaannya dari kode ini)
+import Update_csv  # Import File untuk Update_CSV berdasar status register
 
 # Fungsi untuk mengatur komunikasi serial
 def comserial(com_port, baud_rate=9600): 
@@ -10,7 +10,7 @@ def comserial(com_port, baud_rate=9600):
     ser = serial.Serial(
         port=com_port,          # Port komunikasi serial (misalnya COM3)
         baudrate=baud_rate,     # Baud rate untuk komunikasi serial
-        parity=None,  # Jenis parity (diatur ke OD)
+        parity=serial.PARITY_NONE,  # Jenis parity (diatur ke OD)
         stopbits=serial.STOPBITS_ONE,  # Stop bits (1 bit)
         bytesize=serial.EIGHTBITS,  # Ukuran byte (8 bit)
         timeout=3               # Waktu tunggu (timeout) dalam detik
@@ -48,9 +48,9 @@ def send_stock(file_path, ser):
     return totalharga  # Mengembalikan harga dalam format biner
 
 # Blok utama (dieksekusi jika file ini dijalankan langsung)
-if __name__ == "__main__":
+if _name_ == "_main_":
     file_path = 'okedeh.csv'  # Nama file CSV untuk input data
-    com_port = 'COM3'  # Port komunikasi serial (dapat diubah sesuai kebutuhan)
+    com_port = 'COM17'  # Port komunikasi serial (dapat diubah sesuai kebutuhan)
     baud_rate = 9600  # Baud rate untuk komunikasi serial
     
     try:
