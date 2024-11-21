@@ -12,7 +12,7 @@ void loop() {
          // Membaca data total harga via komunikasi serial
 
         // Mengirim data melalui RF
-        const char msg = data.c_str();  // Konversi String to char
+        const char *msg = data.c_str();  // Konversi String to char
         driver.send((uint8_t *)msg, strlen(msg));  // Mengirim data
         driver.waitPacketSent();  
     }
