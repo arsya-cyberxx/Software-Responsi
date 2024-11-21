@@ -6,8 +6,8 @@ import pandas as pd  # Modul untuk manipulasi data
 def comserial(port, baudrate):
     # Membuat objek serial untuk komunikasi dengan perangkat tertentu
     com = serial.Serial(
-        port='COM3',       # Port serial (ubah sesuai kebutuhan)
-        baudrate=19200     # Baud rate komunikasi
+        port=port,       # Port serial (ubah sesuai kebutuhan)
+        baudrate=baudrate     # Baud rate komunikasi
     )
     return com  # Mengembalikan objek serial
 
