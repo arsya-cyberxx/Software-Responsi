@@ -7,7 +7,7 @@ def comserial(port, baudrate):
     # Membuat objek serial untuk komunikasi dengan perangkat tertentu
     com = serial.Serial(
         port='COM3',       # Port serial (ubah sesuai kebutuhan)
-        baudrate=19200     # Baud rate komunikasi
+        baudrate=9600     # Baud rate komunikasi
     )
     return com  # Mengembalikan objek serial
 
