@@ -18,7 +18,7 @@ async def update_csv(com, file_path):
     data = com_bytes.decode("unicode").strip()  # Decode data ke string dan hapus spasi/karakter tak terlihat
 
     # Jika data dari serial menunjukkan pembayaran berhasil
-    if data == 'Pembayaran berhasil':
+    if data == 'Sukses':
         # Membaca file CSV ke dalam DataFrame pandas
         df = pd.read_csv(file_path)
         
